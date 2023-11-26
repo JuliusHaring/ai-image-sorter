@@ -2,7 +2,7 @@ import sys
 import shutil
 import os
 import dotenv
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QCheckBox, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QCheckBox, QListWidget, QListWidgetItem, QTextEdit
 from PyQt5.QtCore import Qt
 
 from image_analysis import analyze_images_in_folder
@@ -22,6 +22,7 @@ class ImageAnalyzerApp(QWidget):
         self.importFolderLabel = QLabel("Import Folder: None")
         self.targetFolderLabel = QLabel("Target Folder: None")
         self.multipleOutputFoldersCheckbox = QCheckBox("Output multiple folders")
+        self.multipleOutputFoldersCheckbox.setChecked(True)
         self.overwriteCheckbox = QCheckBox("Overwrite existing files")
 
         self.fileTypeList = QListWidget()
@@ -46,6 +47,9 @@ class ImageAnalyzerApp(QWidget):
         self.copyButton.clicked.connect(self.copyFiles)
         self.copyButton.setEnabled(False)  # Disabled initially
 
+        self.analysisOverview = QTextEdit()  # Text display for analysis overview
+        self.analysisOverview.setReadOnly(True)
+
         layout.addWidget(self.importFolderLabel)
         layout.addWidget(self.importFolderButton)
         layout.addWidget(self.targetFolderLabel)
@@ -53,6 +57,7 @@ class ImageAnalyzerApp(QWidget):
         layout.addWidget(self.multipleOutputFoldersCheckbox)
         layout.addWidget(self.analyzeButton)
         layout.addWidget(self.fileTypeList)
+        layout.addWidget(self.analysisOverview)
         layout.addWidget(self.overwriteCheckbox)
         layout.addWidget(self.copyButton)
 
@@ -90,34 +95,31 @@ class ImageAnalyzerApp(QWidget):
             return
 
         print("Starting analysis...")
-        # Call the analysis function from image_analysis module
         self.analysisResult = analyze_images_in_folder(importFolder, targetFolder, multipleFolders)
 
-        self.analysisDone = True  # Set flag to True after analysis is completed
+        # Update the analysis overview with the results
+        analysis_summary = '\n'.join([f"{result['input_image_path']} -> {result['output_image_path']}" for result in self.analysisResult])
+        self.analysisOverview.setText(analysis_summary)
+
+        self.analysisDone = True
         self.updateButtons()
 
     def copyFiles(self):
-        importFolder = self.importFolderLabel.text().replace("Import Folder: ", "")
-        targetFolder = self.targetFolderLabel.text().replace("Target Folder: ", "")
         overwrite = self.overwriteCheckbox.isChecked()
-        selectedFileType = self.fileTypeComboBox.currentText()
 
-        if not os.path.isdir(importFolder) or not os.path.isdir(targetFolder):
-            print("Invalid import or target folder.")
-            return
+        for result in self.analysisResult:
+            src_file = result['input_image_path']
+            dst_file = result['output_image_path']
 
-        for root, dirs, files in os.walk(importFolder):
-            for file in files:
-                if not file.lower().endswith(selectedFileType.lower()):
-                    continue
-                src_file = os.path.join(root, file)
-                dst_file = os.path.join(targetFolder, file)
-                
-                if overwrite or not os.path.exists(dst_file):
-                    shutil.copy2(src_file, dst_file)
-                    print(f"Copied {src_file} to {dst_file}")
-                else:
-                    print(f"File {dst_file} already exists. Skipping.")
+            # Create directories if they do not exist
+            os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+
+            if overwrite or not os.path.exists(dst_file):
+                shutil.copy2(src_file, dst_file)
+                print(f"Copied {src_file} to {dst_file}")
+            else:
+                print(f"File {dst_file} already exists. Skipping.")
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

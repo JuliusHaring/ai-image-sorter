@@ -61,7 +61,8 @@ def call_openai_for_analysis(image_info, folder_out, multiple_folders) -> list[d
     system_prompt = """
     You are a program that gets as input images and data about them, such as Geolocations and Dates, and outputs where the files should be located.
     Always answer in JSON format, with the keys "input_image_path" and "output_image_path". Do just output a list of JSON which can be parsed in Python, nothing else.
-    Hence, start with [ and end with ]."""
+    Hence, start with [ and end with ].
+    If the Multiple folders allowed option is set to False, then only create a single folder for all files."""
     prompt = f"Image Info:\n{image_info}\nMultiple folders allowed: {multiple_folders}\nOutput folder:{folder_out}"
     try:
         response = client.chat.completions.create(model="gpt-3.5-turbo-1106", messages=[
