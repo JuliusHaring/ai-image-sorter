@@ -9,8 +9,7 @@ from glob import glob
 import json
 
 # Replace with your actual API key
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+client = openai.OpenAI()
 
 def get_exif_data(image_path):
     with open(image_path, 'rb') as f:
