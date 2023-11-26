@@ -28,6 +28,7 @@ class ImageAnalyzerApp(QWidget):
         self.analysisDone = False
         self.analysisResult = []  # Store analysis results
         self.initUI()
+        self.resize(800, 600)
 
     def initUI(self):
         layout = QVBoxLayout()
