@@ -1,13 +1,19 @@
 import sys
 import shutil
 import os
+import dotenv
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QCheckBox, QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt
+
+from image_analysis import analyze_images_in_folder
+
+dotenv.load_dotenv()
 
 class ImageAnalyzerApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.analysisDone = False  # Flag to indicate if analysis is done
+        self.analysisDone = False
+        self.analysisResult = []  # Store analysis results
         self.initUI()
 
     def initUI(self):
@@ -15,7 +21,7 @@ class ImageAnalyzerApp(QWidget):
 
         self.importFolderLabel = QLabel("Import Folder: None")
         self.targetFolderLabel = QLabel("Target Folder: None")
-        self.includeOutputFolderCheckbox = QCheckBox("Include Output Folder in Analysis")
+        self.multipleOutputFoldersCheckbox = QCheckBox("Output multiple folders")
         self.overwriteCheckbox = QCheckBox("Overwrite existing files")
 
         self.fileTypeList = QListWidget()
@@ -44,7 +50,7 @@ class ImageAnalyzerApp(QWidget):
         layout.addWidget(self.importFolderButton)
         layout.addWidget(self.targetFolderLabel)
         layout.addWidget(self.targetFolderButton)
-        layout.addWidget(self.includeOutputFolderCheckbox)
+        layout.addWidget(self.multipleOutputFoldersCheckbox)
         layout.addWidget(self.analyzeButton)
         layout.addWidget(self.fileTypeList)
         layout.addWidget(self.overwriteCheckbox)
@@ -57,7 +63,7 @@ class ImageAnalyzerApp(QWidget):
         # Enable analyzeButton if both folders are selected
         importFolder = self.importFolderLabel.text() != "Import Folder: None"
         targetFolder = self.targetFolderLabel.text() != "Target Folder: None"
-        self.analyzeButton.setEnabled(importFolder and targetFolder and (importFolder != targetFolder))
+        self.analyzeButton.setEnabled(importFolder and targetFolder)
 
         # Enable copyButton if analysis is done
         self.copyButton.setEnabled(self.analysisDone)
@@ -75,9 +81,17 @@ class ImageAnalyzerApp(QWidget):
             self.updateButtons()
 
     def startAnalysis(self):
-        # Placeholder for starting analysis
+        importFolder = self.importFolderLabel.text().replace("Import Folder: ", "")
+        targetFolder = self.targetFolderLabel.text().replace("Target Folder: ", "")
+        multipleFolders = self.multipleOutputFoldersCheckbox.isChecked()
+
+        if not os.path.isdir(importFolder) or not os.path.isdir(targetFolder):
+            print("Invalid import or target folder.")
+            return
+
         print("Starting analysis...")
-        # Implement analysis logic here
+        # Call the analysis function from image_analysis module
+        self.analysisResult = analyze_images_in_folder(importFolder, targetFolder, multipleFolders)
 
         self.analysisDone = True  # Set flag to True after analysis is completed
         self.updateButtons()
