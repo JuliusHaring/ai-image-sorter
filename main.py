@@ -2,12 +2,25 @@ import sys
 import shutil
 import os
 import dotenv
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QCheckBox, QListWidget, QListWidgetItem, QTextEdit
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QFileDialog,
+    QLabel,
+    QCheckBox,
+    QListWidget,
+    QListWidgetItem,
+    QTextEdit,
+    QLineEdit,
+)
 from PyQt5.QtCore import Qt
 
 from image_analysis import analyze_images_in_folder
 
 dotenv.load_dotenv()
+
 
 class ImageAnalyzerApp(QWidget):
     def __init__(self):
@@ -26,7 +39,15 @@ class ImageAnalyzerApp(QWidget):
         self.overwriteCheckbox = QCheckBox("Overwrite existing files")
 
         self.fileTypeList = QListWidget()
-        file_types = ["jpg", "jpeg", "tiff", "nef", "cr2", "arw", "raf"]  # Add more file types or RAW formats as needed
+        file_types = [
+            "jpg",
+            "jpeg",
+            "tiff",
+            "nef",
+            "cr2",
+            "arw",
+            "raf",
+        ]  # Add more file types or RAW formats as needed
         for file_type in file_types:
             item = QListWidgetItem(file_type)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
@@ -50,6 +71,10 @@ class ImageAnalyzerApp(QWidget):
         self.analysisOverview = QTextEdit()  # Text display for analysis overview
         self.analysisOverview.setReadOnly(True)
 
+        self.apiKeyInput = QLineEdit()
+        self.apiKeyInput.setPlaceholderText("Enter OpenAI API Key (optional)")
+
+        layout.addWidget(self.apiKeyInput)
         layout.addWidget(self.importFolderLabel)
         layout.addWidget(self.importFolderButton)
         layout.addWidget(self.targetFolderLabel)
@@ -62,7 +87,7 @@ class ImageAnalyzerApp(QWidget):
         layout.addWidget(self.copyButton)
 
         self.setLayout(layout)
-        self.setWindowTitle('Image Analyzer')
+        self.setWindowTitle("Image Analyzer")
 
     def updateButtons(self):
         # Enable analyzeButton if both folders are selected
@@ -90,15 +115,27 @@ class ImageAnalyzerApp(QWidget):
         targetFolder = self.targetFolderLabel.text().replace("Target Folder: ", "")
         multipleFolders = self.multipleOutputFoldersCheckbox.isChecked()
 
+        api_key = self.apiKeyInput.text().strip() or os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("OpenAI API key is missing.")
+            return
+
         if not os.path.isdir(importFolder) or not os.path.isdir(targetFolder):
             print("Invalid import or target folder.")
             return
 
         print("Starting analysis...")
-        self.analysisResult = analyze_images_in_folder(importFolder, targetFolder, multipleFolders)
+        self.analysisResult = analyze_images_in_folder(
+            api_key, importFolder, targetFolder, multipleFolders
+        )
 
         # Update the analysis overview with the results
-        analysis_summary = '\n'.join([f"{result['input_image_path']} -> {result['output_image_path']}" for result in self.analysisResult])
+        analysis_summary = "\n".join(
+            [
+                f"{result['input_image_path']} -> {result['output_image_path']}"
+                for result in self.analysisResult
+            ]
+        )
         self.analysisOverview.setText(analysis_summary)
 
         self.analysisDone = True
@@ -108,8 +145,8 @@ class ImageAnalyzerApp(QWidget):
         overwrite = self.overwriteCheckbox.isChecked()
 
         for result in self.analysisResult:
-            src_file = result['input_image_path']
-            dst_file = result['output_image_path']
+            src_file = result["input_image_path"]
+            dst_file = result["output_image_path"]
 
             # Create directories if they do not exist
             os.makedirs(os.path.dirname(dst_file), exist_ok=True)
@@ -121,7 +158,7 @@ class ImageAnalyzerApp(QWidget):
                 print(f"File {dst_file} already exists. Skipping.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     ex = ImageAnalyzerApp()
     ex.show()
