@@ -1,0 +1,36 @@
+name: CD
+
+on:
+  push:
+    # tags:
+    #   - '*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu, windows] # macos currently not supported
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Install PyInstaller
+      run: pip install pyinstaller
+
+    - name: Build with PyInstaller
+      run: pyinstaller --onefile --windowed main.py -y
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: image-installer-${{ matrix.os }}
+        path: dist
