@@ -9,12 +9,12 @@ from glob import glob
 import json
 
 
-def get_exif_data(image_path):
+def _get_exif_data(image_path):
     with open(image_path, "rb") as f:
         return exifread.process_file(f)
 
 
-def get_decimal_from_dms(dms, ref):
+def _get_decimal_from_dms(dms, ref):
     degrees = dms[0].num / dms[0].den
     minutes = dms[1].num / dms[1].den / 60.0
     seconds = dms[2].num / dms[2].den / 3600.0
@@ -27,22 +27,22 @@ def get_decimal_from_dms(dms, ref):
     return degrees + minutes + seconds
 
 
-def extract_geolocation(image_path):
-    exif_data = get_exif_data(image_path)
+def _extract_geolocation(image_path):
+    exif_data = _get_exif_data(image_path)
     gps_latitude = exif_data.get("GPS GPSLatitude")
     gps_latitude_ref = exif_data.get("GPS GPSLatitudeRef")
     gps_longitude = exif_data.get("GPS GPSLongitude")
     gps_longitude_ref = exif_data.get("GPS GPSLongitudeRef")
 
     if gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref:
-        lat = get_decimal_from_dms(gps_latitude.values, gps_latitude_ref.values)
-        lon = get_decimal_from_dms(gps_longitude.values, gps_longitude_ref.values)
+        lat = _get_decimal_from_dms(gps_latitude.values, gps_latitude_ref.values)
+        lon = _get_decimal_from_dms(gps_longitude.values, gps_longitude_ref.values)
         return (lat, lon)
 
     return None
 
 
-def resolve_gps_to_place(lat, lon):
+def _resolve_gps_to_place(lat, lon):
     response = requests.get(
         f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
     )
@@ -52,8 +52,8 @@ def resolve_gps_to_place(lat, lon):
     return "Unknown Location"
 
 
-def extract_date(image_path):
-    exif_data = get_exif_data(image_path)
+def _extract_date(image_path):
+    exif_data = _get_exif_data(image_path)
     date_taken = exif_data.get("EXIF DateTimeOriginal")
     if date_taken:
         return datetime.strptime(str(date_taken), "%Y:%m:%d %H:%M:%S")
@@ -98,9 +98,9 @@ def analyze_images_in_folder(
             "*.tiff",
         ]:  # Add other relevant patterns
             for file_path in glob(os.path.join(root, file_pattern)):
-                geo = extract_geolocation(file_path)
-                place = resolve_gps_to_place(*geo) if geo else "Unknown"
-                date = extract_date(file_path)
+                geo = _extract_geolocation(file_path)
+                place = _resolve_gps_to_place(*geo) if geo else "Unknown"
+                date = _extract_date(file_path)
                 image_info.append((file_path, place, date))
 
     # Add logic to check for output folders if required
