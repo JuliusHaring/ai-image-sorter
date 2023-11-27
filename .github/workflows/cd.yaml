@@ -1,0 +1,90 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      # Install Python dependencies
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # Build executable with PyInstaller
+      - name: Build with PyInstaller
+        run: pyinstaller --onefile --windowed main.py -y
+
+      # Zip and upload
+      - name: Zip and Upload Artifacts
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          zip -j dist/image-installer-ubuntu.zip dist/main
+          echo "Uploading Ubuntu Artifact..."
+          echo "ARTIFACT_NAME=image-installer-ubuntu.zip" >> $GITHUB_ENV
+
+      - name: Compress and Upload Artifacts
+        if: matrix.os == 'windows-latest'
+        run: |
+          Compress-Archive -Path dist/main.exe -DestinationPath dist/image-installer-windows.zip
+          echo "Uploading Windows Artifact..."
+          echo "ARTIFACT_NAME=image-installer-windows.zip" >> $GITHUB_ENV
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: $ARTIFACT_NAME
+          path: dist/$ARTIFACT_NAME
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out code
+      - uses: actions/checkout@v2
+
+      # Download build artifacts
+      - name: Download Ubuntu Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: image-installer-ubuntu.zip
+          path: dist/
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: image-installer-windows.zip
+          path: dist/
+
+      # Set up Node.js for semantic-release
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21' # or any other compatible version
+
+      # Install semantic-release dependencies
+      - name: Install semantic-release dependencies
+        run: npm install @semantic-release/changelog @semantic-release/commit-analyzer @semantic-release/git @semantic-release/github @semantic-release/release-notes-generator
+
+      # Run semantic-release
+      - name: Run Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
